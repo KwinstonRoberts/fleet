@@ -10,35 +10,46 @@ const client = new pg.Client({
   ssl      : settings.ssl
 });
 var name = process.argv[2];
-client.connect((err) => {
-  if (err) {
-    return console.error("Connection Error", err);
-  }
-  if(!name){
-    console.log('Giving whole database...');
-    client.query('SELECT * FROM famous_people;',
+var lookup = function(query,args){
+
+  if(args){
+    client.query(query, args,
       (err, result) => {
-      if (err) {
-        return console.error("error running query", err);
-      }
-      for(x in result.rows){
-        console.log(`- ${x}: ${result.rows[x].first_name} ${result.rows[x].last_name} born ${result.rows[x].birthday.toString().split(' ').slice(0,3).join(' ')}`);
-      }
-      client.end();
-    });
-  }else{
-    console.log('Searching ...')
-    client.query(`SELECT * FROM famous_people
-                  WHERE last_name=$1;`,[name],
-                  (err, result) => {
       if (err) {
         return console.error("error running query", err);
       }
       console.log(`Found ${result.rows.length} person(s) by the surname '${name}':`)
       for(x in result.rows){
         console.log(`- ${x}: ${result.rows[x].first_name} ${result.rows[x].last_name} born ${result.rows[x].birthday.toString().split(' ').slice(0,3).join(' ')}`);
+      }
+      client.end();
+    });
+  }else{
+      client.query(query, args,
+        (err, result) => {
+        if (err) {
+          return console.error("error running query", err);
+        }
+        for(x in result.rows){
+          console.log(`- ${x}: ${result.rows[x].first_name} ${result.rows[x].last_name} born ${result.rows[x].birthday.toString().split(' ').slice(0,3).join(' ')}`);
         }
         client.end();
     });
+  }
+
+
+}
+
+client.connect((err) => {
+  if (err) {
+    return console.error("Connection Error", err);
+  }
+  if(!name){
+    console.log('Giving whole database...');
+    lookup('SELECT * FROM famous_people;',null);
+  }else{
+    console.log('Searching ...')
+    lookup(`SELECT * FROM famous_people
+                  WHERE last_name=$1;`,[name])
   }
 });
